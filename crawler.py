@@ -212,7 +212,7 @@ class AndroidMarketCrawler(object):
             return True
         if not doc('div.apps.details-page'): 
             return False
-        if 'Apps' not in [a.text for a in doc('.page-content .breadcrumbs a')]:
+        if 'Apps' not in doc('.page-content .breadcrumbs a').text():
             return False
         return True
 
@@ -226,7 +226,7 @@ class AndroidMarketCrawler(object):
         params = self.query_vars(url)
         if not params.get('id'): return None
         if not doc('div.apps.details-page'): return None
-        if 'Apps' not in [a.text for a in doc('.page-content .breadcrumbs a')]:
+        if 'Apps' not in doc('.page-content .breadcrumbs a').text():
             return None
 
         app_info = {
@@ -327,5 +327,6 @@ if __name__ == '__main__':
     # array
     for app in AndroidMarketCrawler(concurrency=10):
         fh.write(json.dumps(app) + "\n")
+        fh.flush()
 
     fh.close()
