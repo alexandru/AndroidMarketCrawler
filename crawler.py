@@ -26,18 +26,13 @@ Warnings:
 # and greenthreads, see the sample at:
 #   http://eventlet.net/doc/examples.html#recursive-web-crawler
 import eventlet
-
-# doing monkey patching, even though eventlet has
-# eventlet.urllib2.urlopen that doesn't need any. However the behavior
-# of that method is to throw exceptions on errors and I don't like it,
-# which is why I'm using plain urllib.urlopen
-eventlet.monkey_patch()
-
 import os
 import re
 import urllib
 import json
 import sys
+
+from eventlet.green import urllib2
 
 # using PyQuery for querying retrieved HTML content using CSS3
 # selectors (awesome!)
@@ -75,6 +70,9 @@ class AndroidMarketCrawler(object):
         # just a counter for statistics
         self.failed = 0
 
+        # our opener
+        self.browser = urllib2.build_opener()
+        self.browser.addheaders.append(('Cookie', 'hlSession2=en'))
 
     def next(self):
         """
@@ -122,15 +120,22 @@ class AndroidMarketCrawler(object):
         shouldn't spawn new green threads here, as this is not the
         parent and trouble may arise.
         """
-        resp = urllib.urlopen(url)
+        try:
+            resp = self.browser.open(url)
 
-        # silently ignores errors, even though the script will not
-        # block here.
-        if resp.getcode() == 404:
-            return
-        elif resp.getcode() != 200:
+        except urllib2.HTTPError, ex:
+            # silently ignores errors, even though the script will not
+            # block here.
+            if ex.code == 404: 
+                return
+
             # this is a slight problem, it shouldn't happen but it
-            # does sometimes
+            # does sometimes, so keeping tracking is useful to see how
+            # often it does happen
+            self.failed += 1
+            return
+
+        except urllib2.URLError:
             self.failed += 1
             return
 
